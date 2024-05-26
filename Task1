@@ -1,13 +1,9 @@
-#!/bin/bash
-
 LOG_FILE="user_creation_log_$(date +"%Y-%m-%d_%H-%M-%S").txt"
-
 log_message() {
     local message="$1"
     echo "$(date +"%Y-%m-%d %H:%M:%S") - $message" | tee -a "$LOG_FILE"
 }
-
-# Function to create a user
+# Create a user
 create_user() {
     local username="$1"
     local password="$2"
@@ -29,14 +25,12 @@ create_user() {
     sudo passwd --expire "$username"
 }
 
-# Function to add a user to groups
+# Add a user to groups
 add_to_groups() {
     local username="$1"
     local groups="$2"
-
     IFS=';' read -ra group_array <<< "$groups"
     for group in "${group_array[@]}"; do
-        # Check if group exists, if not, create it
         if ! getent group "$group" > /dev/null 2>&1; then
             sudo groupadd "$group"
             if [ $? -eq 0 ]; then
@@ -48,14 +42,14 @@ add_to_groups() {
         fi
         sudo usermod -aG "$group" "$username"
         if [ $? -eq 0 ]; then
-            log_message "User $username added to group $group."
+            log_message "$username added to group $group."
         else
-            log_message "Error: Failed to add user $username to group $group"
+            log_message "failed to add user $username to group $group"
         fi
     done
 }
 
-# Function to create a shared folder
+# Create a shared folder
 create_shared_folder() {
     local username="$1"
     local shared_folder="$2"
@@ -63,19 +57,19 @@ create_shared_folder() {
     if [[ -n "$shared_folder" && ! -d "$shared_folder" ]]; then
         sudo mkdir -p "$shared_folder"
         if [ $? -eq 0 ]; then
-            log_message "Shared folder $shared_folder created."
+            log_message "$shared_folder created."
         else
-            log_message "Error: Shared folder creation failed for $shared_folder"
+            log_message "Folder creation failed for $shared_folder"
             return 1
         fi
-        # Create a new group for the shared folder if it doesn't exist
+        # Create a new group for the shared folder
         shared_folder_group="${username}_shared"
         if ! getent group "$shared_folder_group" > /dev/null 2>&1; then
             sudo groupadd "$shared_folder_group"
             if [ $? -eq 0 ]; then
-                log_message "Group $shared_folder_group created."
+                log_message "$shared_folder_group created."
             else
-                log_message "Error: Group creation failed for $shared_folder_group"
+                log_message "Group creation failed for $shared_folder_group"
                 return 1
             fi
         fi
@@ -83,67 +77,60 @@ create_shared_folder() {
         if [ $? -eq 0 ]; then
             log_message "Ownership set for $shared_folder."
         else
-            log_message "Error: Failed to set ownership for $shared_folder"
+            log_message "failed to set ownership for $shared_folder"
         fi
         sudo chmod 770 "$shared_folder"
         if [ $? -eq 0 ]; then
-            log_message "Permissions set for $shared_folder."
+            log_message "permissions set for $shared_folder."
         else
-            log_message "Error: Failed to set permissions for $shared_folder"
+            log_message "fFailed to set permissions for $shared_folder"
         fi
-        # Add the user to the shared folder group
+        # add the user to the shared folder group
         sudo usermod -aG "$shared_folder_group" "$username"
         if [ $? -eq 0 ]; then
-            log_message "User $username added to group $shared_folder_group for shared folder access."
+            log_message "$username added to the group $shared_folder_group"
         else
-            log_message "Error: Failed to add user $username to group $shared_folder_group for shared folder access"
+            log_message "failed to add user $username to group $shared_folder_group"
         fi
     fi
 }
 
-# Function to process CSV data
+# function to process CSV
 process_csv_data() {
     local file="$1"
-    # Read the CSV file line by line
+    # read line by line
     while IFS=, read -r email birth_date groups shared_folder
     do
-        # Skip the header line and comment lines
         if [[ "$email" == "email" || "$email" == \#* ]]; then
             continue
         fi
 
-        # Extract username from email
         local username=$(echo $email | cut -d'@' -f1)
 
-        # Set password based on birth date
+        # password based on birth date
         local password=$(echo $birth_date | tr -d '-')
 
-        # Create user
         create_user "$username" "$password" || continue
 
-        # Add user to groups
+        # add user to groups
         add_to_groups "$username" "$groups"
 
-        # Create shared folder
+        # create shared folder
         create_shared_folder "$username" "$shared_folder"
 
-        # Print summary of user environment
-        log_message "User environment summary for $username:"
         log_message "Username: $username"
         log_message "Home directory: /home/$username"
         if [[ -n "$shared_folder" ]]; then
             log_message "Shared folder: $shared_folder"
             log_message "Shared folder link: $(readlink -f "$shared_folder")"
         fi
-        # Additional information such as alias can be added if required
-
-        log_message "User $username created and configured."
+        log_message "$username created and configured."
     done < "$file"
 }
 
-# Function to get confirmation from the user
+# get confirmation from the user
 confirm_action() {
-    read -p "Do you want to proceed? (yes/no): " response
+    read -p "Do you want to continue? (yes/no): " response
     case "$response" in
         [yY][eE][sS]|[yY])
             return 0
@@ -182,14 +169,14 @@ else
     fi
 fi
 
-# Print information about the input file
+# information about the input file
 log_message "Processing CSV data from file: $CSV_FILE"
 
-# Count the number of users to be added
+# count the number of users to be added
 USER_COUNT=$(grep -v '^#' "$CSV_FILE" | grep -vc '^email')
 log_message "Number of users to be added: $USER_COUNT"
 
-# Ask for confirmation before proceeding
+# ask for confirmation before proceeding
 if ! confirm_action; then
     echo "Operation cancelled."
     exit 0
