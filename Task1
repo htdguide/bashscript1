@@ -1,38 +1,36 @@
-
 #!/bin/bash
 
-BACKUP_SOURCE="/"
-BACKUP_DEST="/media/usbdrive/backup" # Change this to your USB drive mount point
-LOG_FILE="/var/log/backup.log"
-EXCLUDE_FILE="/etc/backup_exclude.txt"
+# Path to the CSV file
+CSV_FILE="/mnt/data/users.csv"
 
-# Check if USB drive is mounted
-if [ ! -d "$BACKUP_DEST" ]; then
-  echo "USB drive not mounted at $BACKUP_DEST. Exiting."
-  exit 1
-fi
+# Read the CSV file line by line
+while IFS=, read -r email birth_date groups shared_folder
+do
+    # Skip the header line
+    if [[ "$email" == "email" ]]; then
+        continue
+    fi
 
-# Create exclude file if it doesn't exist
-if [ ! -f "$EXCLUDE_FILE" ]; then
-  cat <<EOF > "$EXCLUDE_FILE"
-  /proc
-  /tmp
-  /mnt
-  /media
-  /dev
-  /sys
-  /run
-  /var/tmp
-  /lost+found
-  /media/usbdrive
-EOF
-fi
+    # Extract username from email
+    username=$(echo $email | cut -d'@' -f1)
 
-# Create log file if it doesn't exist
-if [ ! -f "$LOG_FILE" ]; then
-  touch "$LOG_FILE"
-fi
+    # Set password based on birth date
+    password=$(echo $birth_date | tr -d '-')
 
-rsync -avh --delete --exclude-from="$EXCLUDE_FILE" "$BACKUP_SOURCE" "$BACKUP_DEST" >> "$LOG_FILE" 2>&1
+    # Create user and set password
+    sudo useradd -m -s /bin/bash "$username"
+    echo "$username:$password" | sudo chpasswd
 
-echo "Backup completed on $(date)" >> "$LOG_FILE"
+    # Set up user groups
+    IFS=';' read -ra group_array <<< "$groups"
+    for group in "${group_array[@]}"; do
+        sudo usermod -aG "$group" "$username"
+    done
+
+    # Create shared folder and set permissions
+    sudo mkdir -p "$shared_folder"
+    sudo chown "$username":"$username" "$shared_folder"
+    sudo chmod 700 "$shared_folder"
+
+    echo "User $username created and configured."
+done < "$CSV_FILE"
