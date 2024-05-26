@@ -19,7 +19,7 @@ This script automates the process of creating multiple user accounts on a Linux 
 #### Instructions
 1. **Download and prepare the script:**
     ```sh
-    wget -O Task1.sh [URL to the script]
+    wget -O Task1.sh https://github.com/htdguide/bashscript1/blob/main/Task1.sh
     chmod +x Task1.sh
     dos2unix Task1.sh
     ```
@@ -29,7 +29,7 @@ This script automates the process of creating multiple user accounts on a Linux 
     ```
 3. **Run the script with a CSV file from a URI:**
     ```sh
-    sudo ./Task1.sh http://example.com/users.csv
+    sudo ./Task1.sh https://github.com/htdguide/bashscript1/blob/main/users.csv
     ```
 4. **If no arguments are provided, the script will prompt for input:**
     ```sh
@@ -50,7 +50,7 @@ This script compresses a given directory into a `.tar.gz` archive and uploads it
 #### Instructions
 1. **Download and prepare the script:**
     ```sh
-    wget -O Task2.sh [URL to the script]
+    wget -O Task2.sh https://github.com/htdguide/bashscript1/blob/main/Task2.sh
     chmod +x Task2.sh
     dos2unix Task2.sh
     ```
@@ -70,7 +70,7 @@ This script compresses a given directory into a `.tar.gz` archive and uploads it
     ```
 - **With a CSV file URL for Task 1:**
     ```sh
-    sudo ./Task1.sh http://example.com/users.csv
+    sudo ./Task1.sh https://github.com/htdguide/bashscript1/blob/main/users.csv
     ```
 - **With a directory argument for Task 2:**
     ```sh
